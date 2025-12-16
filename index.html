@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Panel - Seguro</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; height: 100vh; background: #f3f4f6; display: flex; flex-direction: column; }
+        
+        /* LOGIN SCREEN */
+        #login-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #4F46E5; display: flex; align-items: center; justify-content: center; z-index: 1000;
+        }
+        .login-box {
+            background: white; padding: 40px; border-radius: 10px; width: 300px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2); text-align: center;
+        }
+        .login-box input {
+            width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box;
+        }
+        .login-box button {
+            width: 100%; padding: 10px; background: #1f2937; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;
+        }
+        .error-msg { color: red; font-size: 0.8em; margin-top: 10px; display: none; }
+
+        /* DASHBOARD (Oculto por defecto) */
+        #dashboard { display: none; flex: 1; height: 100%; }
+        #sidebar { width: 300px; background: white; border-right: 1px solid #ddd; display: flex; flex-direction: column; }
+        .sidebar-header { padding: 20px; background: #1f2937; color: white; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
+        .logout-btn { font-size: 0.7em; cursor: pointer; text-decoration: underline; }
+        #user-list { flex: 1; overflow-y: auto; }
+        .user-item { padding: 15px; border-bottom: 1px solid #eee; cursor: pointer; transition: 0.2s; }
+        .user-item:hover, .user-item.active { background: #e0e7ff; }
+        
+        #chat-area { flex: 1; display: flex; flex-direction: column; background: #fff; }
+        #messages-container { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; background: #f3f4f6; }
+        .msg { max-width: 70%; padding: 10px 15px; border-radius: 10px; font-size: 0.9em; }
+        .msg-user { align-self: flex-start; background: white; border: 1px solid #ddd; }
+        .msg-bot { align-self: flex-end; background: #e5e7eb; font-style: italic; }
+        .msg-admin { align-self: flex-end; background: #4F46E5; color: white; }
+        #input-area { padding: 20px; border-top: 1px solid #ddd; display: flex; gap: 10px; background: white; }
+        input[type="text"] { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
+    </style>
+</head>
+<body>
+
+    <div id="login-screen">
+        <div class="login-box">
+            <h2>Acceso Admin</h2>
+            <input type="email" id="email" placeholder="Correo">
+            <input type="password" id="password" placeholder="Contraseña">
+            <button onclick="login()">Entrar</button>
+            <div id="login-error" class="error-msg">Datos incorrectos</div>
+        </div>
+    </div>
+
+    <div id="dashboard" style="display: flex;"> <div id="sidebar">
+            <div class="sidebar-header">
+                Bandeja <span class="logout-btn" onclick="logout()">Salir</span>
+            </div>
+            <div id="user-list">Cargando...</div>
+        </div>
+        <div id="chat-area">
+            <div id="messages-container"></div>
+            <div id="input-area">
+                <input type="text" id="admin-input" placeholder="Escribe tu respuesta..." disabled>
+                <button id="send-btn" onclick="sendReply()" disabled>Enviar</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
+        // --- TU CONFIGURACIÓN AQUÍ ---
+const firebaseConfig = {
+    apiKey: "AIzaSyDqWjgoi8DwcZiXwp3nF1gQ0vvxZ39CUtQ",
+    authDomain: "chatbot-web-v1.firebaseapp.com",
+    projectId: "chatbot-web-v1",
+    storageBucket: "chatbot-web-v1.firebasestorage.app",
+    messagingSenderId: "7994049270",
+    appId: "1:7994049270:web:f5e6a2652065bf4680a2d7",
+    measurementId: "G-H4VMDPG9SP"
+};
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        
+        let currentSessionID = null;
+        let groupedChats = {};
+
+        // --- SISTEMA DE LOGIN ---
+        window.login = () => {
+            const email = document.getElementById('email').value;
+            const pass = document.getElementById('password').value;
+            signInWithEmailAndPassword(auth, email, pass)
+                .catch(error => {
+                    document.getElementById('login-error').style.display = 'block';
+                    console.error(error);
+                });
+        };
+
+        window.logout = () => signOut(auth);
+
+        // --- MONITOR DE ESTADO (Gatekeeper) ---
+        onAuthStateChanged(auth, (user) => {
+            const loginScreen = document.getElementById('login-screen');
+            const dashboard = document.getElementById('dashboard');
+
+            if (user) {
+                // Si hay usuario, mostramos dashboard y cargamos chats
+                loginScreen.style.display = 'none';
+                dashboard.style.display = 'flex';
+                initChatSystem();
+            } else {
+                // Si no, mostramos login
+                loginScreen.style.display = 'flex';
+                dashboard.style.display = 'none';
+            }
+        });
+
+        // --- LÓGICA DEL CHAT (Solo se ejecuta si hay login) ---
+        function initChatSystem() {
+            const q = query(collection(db, "mensajes_chat"), orderBy("timestamp", "asc"));
+            onSnapshot(q, (snapshot) => {
+                groupedChats = {};
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    if (!groupedChats[data.sessionID]) groupedChats[data.sessionID] = [];
+                    groupedChats[data.sessionID].push(data);
+                });
+                renderSidebar();
+                if (currentSessionID) renderChat(currentSessionID);
+            });
+        }
+
+        function renderSidebar() {
+            const list = document.getElementById('user-list');
+            list.innerHTML = '';
+            Object.keys(groupedChats).forEach(id => {
+                const div = document.createElement('div');
+                div.className = `user-item ${id === currentSessionID ? 'active' : ''}`;
+                div.innerHTML = `<strong>${id.substring(0,8)}...</strong>`;
+                div.onclick = () => {
+                    currentSessionID = id;
+                    document.getElementById('admin-input').disabled = false;
+                    document.getElementById('send-btn').disabled = false;
+                    renderSidebar();
+                    renderChat(id);
+                }
+                list.appendChild(div);
+            });
+        }
+
+        function renderChat(id) {
+            const container = document.getElementById('messages-container');
+            container.innerHTML = '';
+            (groupedChats[id] || []).forEach(msg => {
+                const div = document.createElement('div');
+                div.className = `msg msg-${msg.sender}`;
+                div.innerText = msg.text;
+                container.appendChild(div);
+            });
+            container.scrollTop = container.scrollHeight;
+        }
+
+        window.sendReply = async () => {
+            const input = document.getElementById('admin-input');
+            if(!input.value.trim()) return;
+            await addDoc(collection(db, "mensajes_chat"), {
+                text: input.value, sender: "admin", sessionID: currentSessionID, timestamp: serverTimestamp()
+            });
+            input.value = '';
+        };
+        
+        // Enter para enviar
+        document.getElementById('admin-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendReply();
+        });
+        document.getElementById('password').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') login();
+        });
+
+    </script>
+</body>
+</html>
