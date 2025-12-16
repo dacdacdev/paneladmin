@@ -23,7 +23,7 @@
         }
         .error-msg { color: red; font-size: 0.8em; margin-top: 10px; display: none; }
 
-        /* DASHBOARD (Oculto por defecto) */
+        /* DASHBOARD */
         #dashboard { display: none; flex: 1; height: 100%; }
         #sidebar { width: 300px; background: white; border-right: 1px solid #ddd; display: flex; flex-direction: column; }
         .sidebar-header { padding: 20px; background: #1f2937; color: white; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
@@ -54,7 +54,8 @@
         </div>
     </div>
 
-    <div id="dashboard" style="display: flex;"> <div id="sidebar">
+    <div id="dashboard">
+        <div id="sidebar">
             <div class="sidebar-header">
                 Bandeja <span class="logout-btn" onclick="logout()">Salir</span>
             </div>
@@ -72,17 +73,16 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, doc, setDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
         // --- TU CONFIGURACIÓN AQUÍ ---
 const firebaseConfig = {
     apiKey: "AIzaSyDqWjgoi8DwcZiXwp3nF1gQ0vvxZ39CUtQ",
     authDomain: "chatbot-web-v1.firebaseapp.com",
     projectId: "chatbot-web-v1",
-    storageBucket: "chatbot-web-v1.firebasestorage.app",
+    storageBucket: "chatbot-web-v1.firebasestorage.app", 
     messagingSenderId: "7994049270",
     appId: "1:7994049270:web:f5e6a2652065bf4680a2d7",
-    measurementId: "G-H4VMDPG9SP"
 };
 
         const app = initializeApp(firebaseConfig);
@@ -91,6 +91,7 @@ const firebaseConfig = {
         
         let currentSessionID = null;
         let groupedChats = {};
+        let typingTimeout; 
 
         // --- SISTEMA DE LOGIN ---
         window.login = () => {
@@ -105,24 +106,21 @@ const firebaseConfig = {
 
         window.logout = () => signOut(auth);
 
-        // --- MONITOR DE ESTADO (Gatekeeper) ---
         onAuthStateChanged(auth, (user) => {
             const loginScreen = document.getElementById('login-screen');
             const dashboard = document.getElementById('dashboard');
 
             if (user) {
-                // Si hay usuario, mostramos dashboard y cargamos chats
                 loginScreen.style.display = 'none';
                 dashboard.style.display = 'flex';
                 initChatSystem();
             } else {
-                // Si no, mostramos login
                 loginScreen.style.display = 'flex';
                 dashboard.style.display = 'none';
             }
         });
 
-        // --- LÓGICA DEL CHAT (Solo se ejecuta si hay login) ---
+        // --- LÓGICA DEL CHAT ---
         function initChatSystem() {
             const q = query(collection(db, "mensajes_chat"), orderBy("timestamp", "asc"));
             onSnapshot(q, (snapshot) => {
@@ -170,13 +168,34 @@ const firebaseConfig = {
         window.sendReply = async () => {
             const input = document.getElementById('admin-input');
             if(!input.value.trim()) return;
+            
+            // Enviamos el mensaje
             await addDoc(collection(db, "mensajes_chat"), {
                 text: input.value, sender: "admin", sessionID: currentSessionID, timestamp: serverTimestamp()
             });
+
+            // Dejamos de escribir inmediatamente al enviar
+            setDoc(doc(db, "chat_status", currentSessionID), { adminTyping: false }, { merge: true });
+            
             input.value = '';
         };
         
-        // Enter para enviar
+        // --- DETECTOR DE ESCRITURA (NUEVO) ---
+        const adminInput = document.getElementById('admin-input');
+        adminInput.addEventListener('input', () => {
+            if (!currentSessionID) return;
+
+            // 1. Avisar a Firebase que estamos escribiendo
+            setDoc(doc(db, "chat_status", currentSessionID), { adminTyping: true }, { merge: true });
+
+            // 2. Si dejamos de escribir por 2 segundos, quitamos el estado
+            clearTimeout(typingTimeout);
+            typingTimeout = setTimeout(() => {
+                setDoc(doc(db, "chat_status", currentSessionID), { adminTyping: false }, { merge: true });
+            }, 2000);
+        });
+
+        // Listeners teclas
         document.getElementById('admin-input').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') sendReply();
         });
