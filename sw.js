@@ -1,27 +1,26 @@
-// sw.js - Service Worker Básico
-const CACHE_NAME = 'admin-chat-v1';
+// sw.js - Versión 3 (Corregida para index.html)
+const CACHE_NAME = 'admin-chat-v3'; // <--- Cambiamos versión para limpiar lo viejo
 const urlsToCache = [
-'./admin.html',
+'./',
+'./index.html',
 './manifest.json',
 './icon.png'
 ];
 
-// Instalación: Guardamos los archivos en caché
 self.addEventListener('install', event => {
+self.skipWaiting();
 event.waitUntil(
     caches.open(CACHE_NAME)
     .then(cache => {
-        console.log('Archivos cacheados para PWA');
         return cache.addAll(urlsToCache);
     })
 );
 });
 
-// Activación: Limpiamos cachés viejas
 self.addEventListener('activate', event => {
 event.waitUntil(
     caches.keys().then(cacheNames => {
-    return Promise.all(
+return Promise.all(
         cacheNames.map(cacheName => {
         if (cacheName !== CACHE_NAME) {
             return caches.delete(cacheName);
@@ -30,17 +29,13 @@ event.waitUntil(
     );
     })
 );
+return self.clients.claim();
 });
 
-// Interceptamos peticiones: Servimos desde caché si no hay internet
 self.addEventListener('fetch', event => {
 event.respondWith(
-    caches.match(event.request)
-    .then(response => {
-        if (response) {
-        return response;
-        }
-        return fetch(event.request);
-})
+    caches.match(event.request).then(response => {
+    return response || fetch(event.request);
+    })
 );
 });
