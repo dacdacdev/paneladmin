@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Admin Panel - Mobile Ready</title>
+    <title>Admin Panel - App</title>
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#4F46E5">
@@ -13,127 +13,134 @@
 
     <style>
         /* --- ESTILOS GENERALES --- */
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; margin: 0; height: 100vh; background: #f3f4f6; display: flex; flex-direction: column; overflow: hidden; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; height: 100vh; background: #f3f4f6; display: flex; flex-direction: column; overflow: hidden; }
         
-        /* LOGIN SCREEN RESPONSIVE */
+        /* LOGIN SCREEN */
         #login-screen {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #4F46E5; display: flex; align-items: center; justify-content: center; z-index: 3000;
+            background: #4F46E5; display: flex; align-items: center; justify-content: center; z-index: 1000;
         }
         .login-box {
             background: white; padding: 30px; border-radius: 15px; width: 85%; max-width: 350px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.2); text-align: center;
         }
-        .login-box input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
-        .login-box button { width: 100%; padding: 12px; background: #1f2937; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 16px; }
+        .login-box input {
+            width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px;
+        }
+        .login-box button {
+            width: 100%; padding: 12px; background: #1f2937; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 16px; margin-top: 10px;
+        }
         .error-msg { color: red; font-size: 0.9em; margin-top: 10px; display: none; }
 
-        /* DASHBOARD LAYOUT */
-        #dashboard { display: none; flex: 1; height: 100%; width: 100%; overflow: hidden; }
+        /* DASHBOARD (Contenedor Principal) */
+        #dashboard { display: none; width: 100%; height: 100%; overflow: hidden; }
         
-        /* SIDEBAR (LISTA DE USUARIOS) */
+        /* --- BARRA LATERAL (LISTA) --- */
         #sidebar { 
-            width: 320px; background: white; border-right: 1px solid #ddd; 
-            display: flex; flex-direction: column; height: 100%; z-index: 10;
+            width: 350px; background: white; border-right: 1px solid #ddd; display: flex; flex-direction: column; height: 100%;
+            transition: transform 0.3s ease;
         }
         .sidebar-header { 
             padding: 15px 20px; background: #1f2937; color: white; font-weight: bold; 
-            display: flex; justify-content: space-between; align-items: center; height: 50px;
+            display: flex; justify-content: space-between; align-items: center; height: 60px; box-sizing: border-box;
         }
-        .logout-btn { font-size: 0.8em; cursor: pointer; opacity: 0.8; }
-        
+        .logout-btn { font-size: 0.8em; cursor: pointer; opacity: 0.8; padding: 5px; }
         #user-list { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
         
         .user-item { 
-            padding: 15px; border-bottom: 1px solid #f0f0f0; cursor: pointer; 
+            padding: 15px 20px; border-bottom: 1px solid #f0f0f0; cursor: pointer; transition: 0.2s;
             display: flex; justify-content: space-between; align-items: center;
         }
         .user-item:active { background: #e0e7ff; }
         .user-item.active { background: #e0e7ff; border-left: 4px solid #4F46E5; }
         
-        .user-info { flex: 1; overflow: hidden; padding-right: 10px; }
+        .user-info { flex: 1; overflow: hidden; margin-right: 10px; }
         .user-info strong { display: block; font-size: 1rem; color: #333; margin-bottom: 4px; }
         .user-info span { font-size: 0.85rem; color: #666; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        
+
         .delete-btn {
-            background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 10px; color: #ef4444; opacity: 0.6;
+            background: none; border: none; font-size: 1.2rem; cursor: pointer; 
+            padding: 8px; color: #ef4444; opacity: 0.5;
         }
-
-        /* CHAT AREA */
+        
+        /* --- ÁREA DE CHAT --- */
         #chat-area { 
-            flex: 1; display: flex; flex-direction: column; background: #fff; height: 100%; position: relative;
+            flex: 1; display: flex; flex-direction: column; background: #fff; height: 100%; 
+            position: relative;
         }
 
-        /* HEADER DEL CHAT (Solo visible en móvil o para mostrar info) */
-        #chat-mobile-header {
-            display: none; /* Oculto en escritorio por defecto */
-            background: #4F46E5; color: white; padding: 0 15px; height: 60px;
-            align-items: center; gap: 10px; flex-shrink: 0;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        /* Cabecera Móvil del Chat (Oculta en PC por defecto) */
+        #mobile-chat-header {
+            display: none; height: 60px; background: #4F46E5; color: white; align-items: center; padding: 0 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
-        #back-btn { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; padding: 0 10px 0 0; }
-        #chat-title { font-weight: bold; font-size: 1.1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .back-btn { font-size: 1.5rem; margin-right: 15px; cursor: pointer; background: none; border: none; color: white; }
+        .chat-title { font-weight: bold; font-size: 1.1rem; }
 
         #messages-container { 
-            flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; background: #f3f4f6; 
-            -webkit-overflow-scrolling: touch; 
+            flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; background: #f3f4f6; 
+            -webkit-overflow-scrolling: touch;
         }
         
-        /* BURBUJAS ADAPTADAS */
-        .msg { max-width: 80%; padding: 10px 16px; border-radius: 18px; font-size: 0.95rem; line-height: 1.4; word-wrap: break-word; }
-        .msg-user { align-self: flex-start; background: white; border: 1px solid #e5e5e5; border-bottom-left-radius: 4px; }
-        .msg-bot { align-self: flex-end; background: #e5e7eb; font-style: italic; font-size: 0.85rem; }
-        .msg-admin { align-self: flex-end; background: #4F46E5; color: white; border-bottom-right-radius: 4px; }
-
-        /* INPUT AREA ADAPTADA */
+        .msg { max-width: 75%; padding: 10px 14px; border-radius: 12px; font-size: 0.95em; line-height: 1.4; word-wrap: break-word; }
+        .msg-user { align-self: flex-start; background: white; border: 1px solid #e5e5e5; color: #333; border-bottom-left-radius: 2px; }
+        .msg-bot { align-self: flex-end; background: #e0e7ff; color: #333; font-style: italic; border-bottom-right-radius: 2px; }
+        .msg-admin { align-self: flex-end; background: #4F46E5; color: white; border-bottom-right-radius: 2px; }
+        
         #input-area { 
-            padding: 10px; border-top: 1px solid #ddd; display: flex; gap: 10px; background: white; align-items: center; 
-            padding-bottom: env(safe-area-inset-bottom, 20px); /* Para iPhone X+ */
+            padding: 10px 15px; border-top: 1px solid #ddd; display: flex; gap: 10px; background: white; align-items: center; 
+            min-height: 60px; box-sizing: border-box;
         }
         input[type="text"] { 
-            flex: 1; padding: 12px 15px; border: 1px solid #ddd; border-radius: 25px; outline: none; font-size: 16px; /* 16px evita zoom en iOS */
-            background: #f9fafb;
+            flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 25px; outline: none; font-size: 16px; background: #f9f9f9;
         }
+        input[type="text"]:focus { border-color: #4F46E5; background: white; }
         #send-btn { 
-            background: #4F46E5; color: white; border: none; padding: 10px 20px; border-radius: 25px; font-weight: bold; cursor: pointer; flex-shrink: 0; 
+            background: #4F46E5; color: white; border: none; border-radius: 50%; width: 45px; height: 45px; 
+            display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1.2rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
         #send-btn:disabled { background: #ccc; }
 
-        /* --- BOTÓN DESCARGA --- */
+        /* --- BOTÓN DE DESCARGAR APP --- */
         #install-app-btn {
-            display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-            background-color: #10b981; color: white; border: none; padding: 12px 25px; border-radius: 30px;
-            font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.3); cursor: pointer; z-index: 2000;
-            font-size: 1rem; white-space: nowrap;
+            display: none; position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+            background-color: #10b981; color: white; border: none; padding: 10px 20px;
+            border-radius: 30px; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            cursor: pointer; z-index: 2000; font-size: 0.9rem; align-items: center; gap: 8px; white-space: nowrap;
         }
 
-        /* --- MEDIA QUERY: MÓVILES (Magia Responsiva) --- */
+        /* --- MEDIA QUERIES (AQUÍ ESTÁ LA MAGIA PARA MÓVIL) --- */
         @media (max-width: 768px) {
-            #sidebar { width: 100%; position: absolute; top: 0; left: 0; }
-            #chat-area { width: 100%; position: absolute; top: 0; left: 100%; transition: transform 0.3s ease-in-out; }
+            #dashboard { display: flex; position: relative; } /* Flex para contener ambos */
             
-            /* Clases de estado para navegación */
-            body.chat-open #sidebar { transform: translateX(-20%); opacity: 0; pointer-events: none; }
-            body.chat-open #chat-area { transform: translateX(-100%); }
+            /* Por defecto en móvil: Sidebar ocupa 100%, Chat oculto */
+            #sidebar { width: 100%; position: absolute; left: 0; top: 0; bottom: 0; z-index: 10; }
+            #chat-area { width: 100%; position: absolute; left: 100%; top: 0; bottom: 0; transition: transform 0.3s ease-in-out; z-index: 20; }
+            
+            /* Cuando la clase "chat-open" está en el body */
+            body.chat-open #sidebar { transform: translateX(-20%); opacity: 0; } /* Efecto visual */
+            body.chat-open #chat-area { transform: translateX(-100%); } /* Trae el chat a la pantalla */
 
-            #chat-mobile-header { display: flex; } /* Mostrar cabecera con botón atrás */
+            /* Mostrar cabecera con botón volver en móvil */
+            #mobile-chat-header { display: flex; }
             
-            .msg { max-width: 85%; }
-            #dashboard { position: relative; } /* Necesario para el absolute positioning */
+            /* Ajustes finos */
+            .sidebar-header { padding-top: 15px; } /* Espacio barra estado */
         }
+
     </style>
 </head>
 <body>
 
-    <button id="install-app-btn" onclick="installApp()">📥 Instalar App</button>
+    <button id="install-app-btn" onclick="installApp()">📥 Descargar App</button>
 
     <div id="login-screen">
         <div class="login-box">
-            <h2>Admin Chat</h2>
+            <h2>Admin App</h2>
             <input type="email" id="email" placeholder="Correo">
             <input type="password" id="password" placeholder="Contraseña">
             <button onclick="login()">Entrar</button>
-            <div id="login-error" class="error-msg">Error de credenciales</div>
+            <div id="login-error" class="error-msg">Datos incorrectos</div>
         </div>
     </div>
 
@@ -141,25 +148,27 @@
         
         <div id="sidebar">
             <div class="sidebar-header">
-                <span>Bandeja</span>
-                <span class="logout-btn" onclick="logout()">Salir</span>
+                Chats Activos <span class="logout-btn" onclick="logout()">Salir</span>
             </div>
-            <div id="user-list">Cargando...</div>
+            <div id="user-list">
+                <div style="padding:20px; color:#999; text-align:center;">Cargando...</div>
+            </div>
         </div>
 
         <div id="chat-area">
-            <div id="chat-mobile-header">
-                <button id="back-btn" onclick="backToList()">←</button>
-                <span id="chat-title">Chat</span>
+            <div id="mobile-chat-header">
+                <button class="back-btn" onclick="closeChatMobile()">←</button>
+                <span class="chat-title" id="mobile-chat-title">Chat</span>
             </div>
 
             <div id="messages-container"></div>
             
             <div id="input-area">
-                <input type="text" id="admin-input" placeholder="Responder..." disabled>
-                <button id="send-btn" onclick="sendReply()" disabled>→</button>
+                <input type="text" id="admin-input" placeholder="Escribe..." disabled>
+                <button id="send-btn" onclick="sendReply()" disabled>➤</button>
             </div>
         </div>
+
     </div>
 
     <script type="module">
@@ -167,7 +176,6 @@
         import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, doc, setDoc, deleteDoc, getDocs, where } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
-        // TUS CREDENCIALES
         const firebaseConfig = {
             apiKey: "AIzaSyDqWjgoi8DwcZiXwp3nF1gQ0vvxZ39CUtQ",
             authDomain: "chatbot-web-v1.firebaseapp.com",
@@ -185,20 +193,7 @@
         let groupedChats = {};
         let typingTimeout;
 
-        // --- FUNCIONES DE NAVEGACIÓN MÓVIL ---
-        window.backToList = () => {
-            document.body.classList.remove('chat-open');
-            currentSessionID = null;
-            document.getElementById('admin-input').blur(); // Ocultar teclado
-        };
-
-        window.openChatView = (id) => {
-            document.body.classList.add('chat-open');
-            document.getElementById('chat-title').innerText = `Chat: ${id.substring(0,6)}`;
-        };
-
-
-        // --- LOGIN ---
+        // --- AUTH ---
         window.login = () => {
             const email = document.getElementById('email').value;
             const pass = document.getElementById('password').value;
@@ -213,7 +208,7 @@
             const dashboard = document.getElementById('dashboard');
             if (user) {
                 loginScreen.style.display = 'none';
-                dashboard.style.display = 'flex';
+                dashboard.style.display = 'flex'; // Importante para el layout
                 initChatSystem();
             } else {
                 loginScreen.style.display = 'flex';
@@ -232,7 +227,8 @@
                     groupedChats[data.sessionID].push(data);
                 });
                 renderSidebar();
-                // Si estamos en un chat y llega un mensaje nuevo, refrescamos
+                
+                // Si estamos dentro de un chat y llega un mensaje nuevo, actualizamos
                 if (currentSessionID && groupedChats[currentSessionID]) {
                     renderChat(currentSessionID);
                 }
@@ -249,16 +245,22 @@
                 return (lastB?.seconds || 0) - (lastA?.seconds || 0);
             });
 
+            if(sortedIDs.length === 0) {
+                list.innerHTML = '<div style="padding:20px; text-align:center; color:#ccc">No hay chats activos</div>';
+                return;
+            }
+
             sortedIDs.forEach(id => {
                 const msgs = groupedChats[id];
                 const lastMsg = msgs[msgs.length - 1];
-                
                 const div = document.createElement('div');
                 div.className = `user-item ${id === currentSessionID ? 'active' : ''}`;
+                
+                // HTML ITEM
                 div.innerHTML = `
                     <div class="user-info" onclick="selectChat('${id}')">
-                        <strong>${id.substring(0,8)}...</strong>
-                        <span>${lastMsg.sender === 'admin' ? 'Tú: ' : ''}${lastMsg.text}</span>
+                        <strong>${id.substring(0,6)}...</strong>
+                        <span>${lastMsg.text}</span>
                     </div>
                     <button class="delete-btn" onclick="deleteChatSession('${id}')">🗑️</button>
                 `;
@@ -266,28 +268,45 @@
             });
         }
 
+        // SELECCIONAR CHAT (Lógica Mixta PC/Móvil)
         window.selectChat = (id) => {
             currentSessionID = id;
             document.getElementById('admin-input').disabled = false;
             document.getElementById('send-btn').disabled = false;
+            
+            // Actualizar título móvil
+            document.getElementById('mobile-chat-title').innerText = `Chat: ${id.substring(0,6)}...`;
+
+            // Renderizar mensajes
             renderChat(id);
-            // Si es móvil, hacemos la transición
-            if (window.innerWidth <= 768) {
-                openChatView(id);
-            }
+            renderSidebar(); // Para marcar el activo
+
+            // ACTIVAR MODO CHAT EN MÓVIL (Clase mágica)
+            document.body.classList.add('chat-open');
+        };
+
+        // VOLVER A LA LISTA (SOLO MÓVIL)
+        window.closeChatMobile = () => {
+            document.body.classList.remove('chat-open');
+            currentSessionID = null;
+            renderSidebar();
+            // Deseleccionar visualmente
+            const activeItems = document.querySelectorAll('.user-item.active');
+            activeItems.forEach(i => i.classList.remove('active'));
         };
 
         window.deleteChatSession = async (idToDel) => {
             if(!confirm("¿Borrar chat?")) return;
             try {
+                // Si borramos el chat que estamos viendo, volvemos atrás
+                if (currentSessionID === idToDel) closeChatMobile();
+
                 const q = query(collection(db, "mensajes_chat"), where("sessionID", "==", idToDel));
-                const snap = await getDocs(q);
+                const querySnapshot = await getDocs(q);
                 const promises = [];
-                snap.forEach(d => promises.push(deleteDoc(d.ref)));
+                querySnapshot.forEach((doc) => promises.push(deleteDoc(doc.ref)));
                 await Promise.all(promises);
                 await deleteDoc(doc(db, "chat_status", idToDel));
-                
-                if (currentSessionID === idToDel) backToList(); // Volver a la lista si borras el actual
             } catch (e) { alert("Error"); }
         };
 
@@ -305,15 +324,17 @@
 
         window.sendReply = async () => {
             const input = document.getElementById('admin-input');
-            if(!input.value.trim()) return;
+            const txt = input.value.trim();
+            if(!txt) return;
+            
             await addDoc(collection(db, "mensajes_chat"), {
-                text: input.value, sender: "admin", sessionID: currentSessionID, timestamp: serverTimestamp()
+                text: txt, sender: "admin", sessionID: currentSessionID, timestamp: serverTimestamp()
             });
             setDoc(doc(db, "chat_status", currentSessionID), { adminTyping: false }, { merge: true });
             input.value = '';
         };
 
-        // Input Listeners
+        // Detector escritura
         const adminInput = document.getElementById('admin-input');
         adminInput.addEventListener('input', () => {
             if (!currentSessionID) return;
@@ -324,9 +345,14 @@
             }, 2000);
         });
 
-        adminInput.addEventListener('keypress', (e) => {
+        // Enter para enviar
+        document.getElementById('admin-input').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') sendReply();
         });
+        document.getElementById('password').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') login();
+        });
+
     </script>
 
     <script>
@@ -335,12 +361,17 @@
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
-            installBtn.style.display = 'block';
+            installBtn.style.display = 'flex';
         });
         window.installApp = async () => {
-            if (!deferredPrompt) { alert("Usa el menú del navegador para instalar."); return; }
+            if (!deferredPrompt) {
+                alert("Instala desde el menú del navegador: 'Añadir a inicio'");
+                return;
+            }
             deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
             deferredPrompt = null;
+            if(outcome === 'accepted') installBtn.style.display = 'none';
         };
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));
